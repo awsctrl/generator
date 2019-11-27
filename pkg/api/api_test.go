@@ -19,10 +19,10 @@ package api_test
 import (
 	"testing"
 
+	"github.com/spf13/afero"
 	"go.awsctrl.io/generator/pkg/api"
 	"go.awsctrl.io/generator/pkg/input"
 	"go.awsctrl.io/generator/pkg/resource"
-	"github.com/spf13/afero"
 
 	kbinput "sigs.k8s.io/kubebuilder/pkg/scaffold/input"
 	kbresource "sigs.k8s.io/kubebuilder/pkg/scaffold/resource"
@@ -85,10 +85,12 @@ func TestAPI_Build(t *testing.T) {
 			},
 		},
 	}
+	rs := []resource.Resource{*r}
 
 	type fields struct {
-		api      *api.API
-		resource *resource.Resource
+		api       *api.API
+		resource  *resource.Resource
+		resources []resource.Resource
 	}
 	tests := []struct {
 		name     string
@@ -96,14 +98,14 @@ func TestAPI_Build(t *testing.T) {
 		wantErr  bool
 		wantFile string
 	}{
-		{"TestCreatingTypesFile", fields{a, r}, false, "apis/ecr/v1alpha1/repository_types.go"},
-		{"TestCreatingtypesFile", fields{a, r}, false, "apis/ecr/v1alpha1/repository_types.go"},
-		{"TestCreatingStackObjectFile", fields{a, r}, false, "apis/ecr/v1alpha1/zz_generated.repository.stackobject.go"},
-		{"TestCreatingControllerFile", fields{a, r}, false, "controllers/ecr/repository_controller.go"},
+		{"TestCreatingTypesFile", fields{a, r, rs}, false, "apis/ecr/v1alpha1/repository_types.go"},
+		{"TestCreatingtypesFile", fields{a, r, rs}, false, "apis/ecr/v1alpha1/repository_types.go"},
+		{"TestCreatingStackObjectFile", fields{a, r, rs}, false, "apis/ecr/v1alpha1/zz_generated.repository.stackobject.go"},
+		{"TestCreatingControllerFile", fields{a, r, rs}, false, "controllers/ecr/repository_controller.go"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.fields.api.Build(tt.fields.resource); (err != nil) != tt.wantErr {
+			if err := tt.fields.api.Build(tt.fields.resource, tt.fields.resources); (err != nil) != tt.wantErr {
 				t.Errorf("API.Build() error = %v, wantErr %v", err, tt.wantErr)
 			}
 

@@ -40,14 +40,14 @@ func Test_cfnspec_Parse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			in := cfnspec.New()
+			in := cfnspec.New([]string{}, []string{})
 
 			if err := in.Parse(); (err != nil) != tt.wantErr {
 				t.Errorf("cfnspec.Parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			if in.GetSpecification().ResourceSpecificationVersion != "8.1.0" {
-				t.Errorf("cfnspec.GetSpecification() ResourceSpecificationVersion %v, want 8.1.0", in.GetSpecification().ResourceSpecificationVersion)
+			if in.GetSpecification().ResourceSpecificationVersion != "9.1.1" {
+				t.Errorf("cfnspec.GetSpecification() ResourceSpecificationVersion %v, want 9.1.1", in.GetSpecification().ResourceSpecificationVersion)
 			}
 		})
 	}

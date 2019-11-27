@@ -1,0 +1,4 @@
+./generator
+
+*.out
+coverage.txt

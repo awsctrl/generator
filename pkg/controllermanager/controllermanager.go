@@ -73,8 +73,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	{{ range $group, $version := .Groups }}
-	{{ $group }}{{ $version }} "go.awsctrl.io/apis/{{ $group }}/{{ $version }}"
-	"go.awsctrl.io/controllers/{{ $group }}"
+	{{ $group }}{{ $version }} "go.awsctrl.io/manager/apis/{{ $group }}/{{ $version }}"
+	"go.awsctrl.io/manager/controllers/{{ $group }}"
 	{{ end }}
 
 	"sigs.k8s.io/controller-runtime/pkg/manager"

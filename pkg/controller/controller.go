@@ -68,9 +68,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	v1alpha1 "go.awsctrl.io/apis/{{ .Resource.Group | lower }}/{{ .Resource.Version }}"
-	cloudformationv1alpha1 "go.awsctrl.io/apis/cloudformation/v1alpha1"
-	"go.awsctrl.io/controllers/generic"
+	v1alpha1 "go.awsctrl.io/manager/apis/{{ .Resource.Group | lower }}/{{ .Resource.Version }}"
+	cloudformationv1alpha1 "go.awsctrl.io/manager/apis/cloudformation/v1alpha1"
+	"go.awsctrl.io/manager/controllers/generic"
 )
 
 var (

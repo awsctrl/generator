@@ -18,9 +18,9 @@ limitations under the License.
 package types
 
 import (
+	"fmt"
 	"go.awsctrl.io/generator/pkg/input"
 	"go.awsctrl.io/generator/pkg/resource"
-	"fmt"
 	"path/filepath"
 	"strings"
 )
@@ -54,9 +54,9 @@ package {{ .Resource.Version }}
 import (
 	"strings"
 
-	metav1alpha1 "go.awsctrl.io/apis/meta/v1alpha1"
-	controllerutils "go.awsctrl.io/controllers/utils"
-	cfnencoder "go.awsctrl.io/encoding/cloudformation"
+	metav1alpha1 "go.awsctrl.io/manager/apis/meta/v1alpha1"
+	controllerutils "go.awsctrl.io/manager/controllers/utils"
+	cfnencoder "go.awsctrl.io/manager/encoding/cloudformation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

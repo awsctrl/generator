@@ -61,11 +61,11 @@ import (
 	"strings"
 	"reflect"
 
-	metav1alpha1 "go.awsctrl.io/apis/meta/v1alpha1"
-	controllerutils "go.awsctrl.io/controllers/utils"
-	cfnencoder "go.awsctrl.io/encoding/cloudformation"
-
-	cfnhelpers "go.awsctrl.io/aws/cloudformation"
+	metav1alpha1 "go.awsctrl.io/manager/apis/meta/v1alpha1"
+	controllerutils "go.awsctrl.io/manager/controllers/utils"
+	cfnencoder "go.awsctrl.io/manager/encoding/cloudformation"
+	cfnhelpers "go.awsctrl.io/manager/aws/cloudformation"
+	
 	goformation "github.com/awslabs/goformation/v3/cloudformation"
 	"github.com/awslabs/goformation/v3/cloudformation/{{ .Resource.Group  }}"
 	"github.com/awslabs/goformation/v3/intrinsics"

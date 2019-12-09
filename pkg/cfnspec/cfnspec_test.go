@@ -46,8 +46,8 @@ func Test_cfnspec_Parse(t *testing.T) {
 				t.Errorf("cfnspec.Parse() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			if in.GetSpecification().ResourceSpecificationVersion != "9.1.1" {
-				t.Errorf("cfnspec.GetSpecification() ResourceSpecificationVersion %v, want 9.1.1", in.GetSpecification().ResourceSpecificationVersion)
+			if in.GetSpecification().ResourceSpecificationVersion == "" {
+				t.Errorf("cfnspec.GetSpecification() ResourceSpecificationVersion %v, want not empty string", in.GetSpecification().ResourceSpecificationVersion)
 			}
 		})
 	}

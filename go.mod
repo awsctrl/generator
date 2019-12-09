@@ -25,8 +25,9 @@ require (
 	go.hein.dev/go-version v0.1.0
 	golang.org/x/sys v0.0.0-20191120155948-bd437916bb0e // indirect
 	golang.org/x/tools v0.0.0-20190812233024-afc3694995b6
-	gopkg.in/yaml.v2 v2.2.7 // indirect
+	gopkg.in/yaml.v2 v2.2.7
 	k8s.io/apimachinery v0.0.0-20191115015347-3c7067801da2
 	sigs.k8s.io/controller-runtime v0.3.0
 	sigs.k8s.io/kubebuilder v1.0.8
+	sigs.k8s.io/yaml v1.1.0
 )

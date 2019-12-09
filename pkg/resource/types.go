@@ -26,6 +26,9 @@ import (
 type Resource struct {
 	kbresource.Resource
 
+	// ResourceName returns the CFN Name
+	ResourceName string
+
 	// ResourceType maps all the attributes on the resource
 	ResourceType ResourceType
 
@@ -67,8 +70,11 @@ type Property interface {
 	// GetGoType returns the golang type
 	GetGoType(string) string
 
-	// IsParameter will make a property a parameter
+	// IsParameter will return if the property is a parameter
 	IsParameter() bool
+
+	// IsList will return if the property is a list
+	IsList() bool
 
 	// GetDefault returns default values for params
 	GetDefault() string

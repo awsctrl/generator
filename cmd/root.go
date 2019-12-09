@@ -17,12 +17,16 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/spf13/cobra"
+	"go.awsctrl.io/generator/apis/generator/v1alpha1"
+	"sigs.k8s.io/yaml"
 )
 
 var cfgFile string
+var cfg v1alpha1.Config
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -44,5 +48,22 @@ func Execute() {
 }
 
 func init() {
+	cobra.OnInitialize(initConfig)
+
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "f", "awsctrl-generator.yaml", "config file (default is awsctrl-generator.yaml)")
+	rootCmd.MarkFlagRequired("config")
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func initConfig() {
+	yamlFile, err := ioutil.ReadFile(cfgFile)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	err = yaml.Unmarshal(yamlFile, &cfg)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }

@@ -19,6 +19,7 @@ package stackobject
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -48,9 +49,100 @@ func (in *StackObject) GetInput() input.Input {
 	return in.Input
 }
 
+// GenerateTemplateFunctions generates all the resource definition functions
+func (in *StackObject) GenerateTemplateFunctions() string {
+	lines := []string{"// GenerateTemplateFunctions"}
+
+	groupLower := strings.ToLower(in.Resource.Group)
+	kind := in.Resource.Kind
+	attrName := groupLower + kind
+
+	lines = appendstrf(lines, "%v := &%v.%v{}", attrName, groupLower, kind)
+	lines = appendblank(lines)
+	// {{- range $name, $property := .Resource.ResourceType.GetProperties }}
+	// {{- if $property.IsParameter }}
+	// if in.Spec.{{ $name }} != "" {
+	// 	{{ $.Resource.Group | lower }}{{ $.Resource.Kind }}.{{ $name }} = in.Spec.{{ $name }}
+	// }
+	// {{ end }}
+	// {{ end }}
+
+	// {{- range $resourcename, $resource := .Resource.PropertyTypes }}
+	// {{ $.Resource.Group | lower }}{{ $.Resource.Kind }}{{ $resourcename }} := &{{ $.Resource.Group | lower }}.{{ $.Resource.Kind }}_{{ $resourcename }}{}
+	// {{- range $name, $property := $resource.GetProperties }}
+	// {{- if $property.IsParameter }}
+	// if in.Spec.{{ $.Resource.Kind }}_{{ $resourcename }}.{{ $name }} != "" {
+	// 	{{ $.Resource.Group | lower }}{{ $.Resource.Kind }}{{ $resourcename }}.{{ $name }} = in.Spec.{{ $.Resource.Kind }}_{{ $resourcename }}.{{ $name }}
+	// }
+	// {{ end }}
+	// {{ end }}
+
+	// if !reflect.DeepEqual(&{{ $.Resource.Group | lower }}.{{ $.Resource.Kind }}_{{ $resourcename }}{}, {{ $.Resource.Group | lower }}{{ $.Resource.Kind }}{{ $resourcename }}) {
+	// 	{{ $.Resource.Group | lower }}{{ $.Resource.Kind }}.{{ $.Resource.Kind }}_{{ $resourcename }} = {{ $.Resource.Group | lower }}{{ $.Resource.Kind }}{{ $resourcename }}
+	// }
+	// {{ end }}
+
+	lines = in.loopTemplateProperties(lines, groupLower+kind, "in.Spec", in.Resource.ResourceType.GetProperties())
+
+	lines = appendstrf(lines, "template.Resources = map[string]goformation.Resource{")
+	lines = appendstrf(lines, `"%v": %v,`, kind, attrName)
+	lines = appendstrf(lines, "}")
+
+	return strings.Join(lines, "\n")
+}
+
+func (in *StackObject) loopTemplateProperties(lines []string, attrName, paramBase string, propertyMap map[string]resource.Property) []string {
+	groupLower := strings.ToLower(in.Resource.Group)
+	kind := in.Resource.Kind
+
+	for name, property := range propertyMap {
+		if property.IsParameter() {
+			lines = appendstrf(lines, `if %v.%v != "" {`, paramBase, name)
+			lines = appendstrf(lines, `%v.%v = %v.%v`, attrName, name, paramBase, name)
+			lines = appendstrf(lines, "}")
+			lines = appendblank(lines)
+		}
+
+		if property.IsList() {
+			listAttrName := attrName + name
+			propertyTypeName := attrName + property.GetItemType()
+			lines = appendstrf(lines, "%v := []%v.%v_%v{}", listAttrName, groupLower, kind, property.GetItemType())
+			lines = appendblank(lines)
+			lines = appendstrf(lines, "for _, item := range in.Spec.%v {", name)
+			lines = appendstrf(lines, "%v := %v.%v_%v{}", propertyTypeName, groupLower, kind, property.GetItemType())
+			lines = appendblank(lines)
+			propType, ok := in.Resource.PropertyTypes[property.GetItemType()]
+			if !ok {
+				fmt.Printf("failed loading subresource %v", property.GetItemType())
+				os.Exit(1)
+			}
+
+			lines = in.loopTemplateProperties(lines, propertyTypeName, "item", propType.GetProperties())
+
+			lines = appendstrf(lines, "}")
+			lines = appendblank(lines)
+			lines = appendstrf(lines, "if len(%v) > 0 {", listAttrName)
+			lines = appendstrf(lines, `%v.%v = %v`, attrName, name, listAttrName)
+			lines = appendstrf(lines, "}")
+
+		}
+	}
+	lines = appendblank(lines)
+
+	return lines
+}
+
+func appendstrf(slice []string, temp string, a ...interface{}) []string {
+	return append(slice, fmt.Sprintf(temp, a...))
+}
+
+func appendblank(slice []string) []string {
+	return append(slice, "")
+}
+
 // Validate validates the values
-func (g *StackObject) Validate() error {
-	return g.Resource.Validate()
+func (in *StackObject) Validate() error {
+	return in.Resource.Validate()
 }
 
 const stackobjectTemplate = `{{ .Boilerplate }}
@@ -86,65 +178,7 @@ func (in *{{ .Resource.Kind }}) GetTemplate() (string, error) {
 
 	template.Description = "AWS Controller - {{ .Resource.Group  }}.{{ .Resource.Kind }} (ac-{TODO})"
 
-	{{ range $name, $property := .Resource.ResourceType.GetProperties }}
-	{{- if $property.IsParameter }}
-	if in.Spec.{{ $name }} != "" {
-		template.Parameters["{{ $name }}"] = cfnhelpers.Parameter{
-			Type:        "{{ $property.GetType | title }}",
-			Description: "{{ $property.GetDocumentation }}",
-			Default:     "{{ $property.GetDefault }}",
-		}
-	}
-	{{ end }}
-	{{ end }}
-
-	{{ range $resourcename, $resource := .Resource.PropertyTypes }}
-	{{ range $name, $property := $resource.GetProperties }}
-	{{- if $property.IsParameter }}
-	if in.Spec.{{ $.Resource.Kind }}_{{ $resourcename }}.{{ $name }} != "" {
-		template.Parameters["{{ $name }}"] = cfnhelpers.Parameter{
-			Type:        "{{ $property.GetType | title }}",
-			Description: "{{ $property.GetDocumentation }}",
-			Default:     "{{ $property.GetDefault }}",
-		}
-	}
-	{{ end }}
-	{{ end }}
-	{{ end }}
-
-	{{ .Resource.Group | lower }}{{ .Resource.Kind }} := &{{ .Resource.Group | lower }}.{{ .Resource.Kind }}{}
-
-	{{- range $name, $property := .Resource.ResourceType.GetProperties }}
-	{{- if $property.IsParameter }}
-	if in.Spec.{{ $name }} != "" {
-		{{ $.Resource.Group | lower }}{{ $.Resource.Kind }}.{{ $name }} = goformation.Ref("{{ $name }}")
-	}
-	{{ end }}
-	{{ end }}
-
-	{{- range $resourcename, $resource := .Resource.PropertyTypes }}
-	{{ $.Resource.Group | lower }}{{ $.Resource.Kind }}{{ $resourcename }} := &{{ $.Resource.Group | lower }}.{{ $.Resource.Kind }}_{{ $resourcename }}{}
-	{{- range $name, $property := $resource.GetProperties }}
-	{{- if $property.IsParameter }}
-	{{ if $property.IsList }}
-	if in.Spec.{{ $.Resource.Kind }}_{{ $resourcename | pluralize }}.{{ $name }} != "" {
-		{{ $.Resource.Group | lower }}{{ $.Resource.Kind }}{{ $resourcename }}.{{ $name }} = goformation.Ref("{{ $name }}")
-	}
-	{{ else }}
-	if in.Spec.{{ $.Resource.Kind }}_{{ $resourcename }}.{{ $name }} != "" {
-		{{ $.Resource.Group | lower }}{{ $.Resource.Kind }}{{ $resourcename }}.{{ $name }} = goformation.Ref("{{ $name }}")
-	}
-	{{ end }}
-	{{ end }}
-	{{ end }}
-
-	if !reflect.DeepEqual(&{{ $.Resource.Group | lower }}.{{ $.Resource.Kind }}_{{ $resourcename }}{}, {{ $.Resource.Group | lower }}{{ $.Resource.Kind }}{{ $resourcename }}) {
-		{{ $.Resource.Group | lower }}{{ $.Resource.Kind }}.{{ $.Resource.Kind }}_{{ $resourcename }} = {{ $.Resource.Group | lower }}{{ $.Resource.Kind }}{{ $resourcename }}
-	}
-	{{ end }}
-
-	template.Resources["{{ .Resource.Kind }}"] = {{ .Resource.Group | lower }}{{ .Resource.Kind }}
-
+	{{ noescape .GenerateTemplateFunctions }}
 
 	{{ if false }}
 	// template.Outputs["Ref"] = cfnhelpers.Output{
@@ -178,6 +212,7 @@ func (in *{{ .Resource.Kind }}) GetStackName() string {
 	return in.Spec.StackName
 }
 
+// GetTemplateVersionLabel will return the stack template version
 func (in *{{ .Resource.Kind }}) GetTemplateVersionLabel() (value string, ok bool) {
 	value, ok = in.Labels[controllerutils.StackTemplateVersionLabel]
 	return

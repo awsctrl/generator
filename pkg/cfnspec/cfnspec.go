@@ -119,7 +119,7 @@ func (in *cfnspec) GenerateResources() error {
 
 	// Resources
 	for resourcename, cloudformationresource := range in.GetSpecification().ResourceTypes {
-		newresource := newResource(strings.Split(resourcename, "::"), cloudformationresource)
+		newresource := newResource(resourcename, cloudformationresource)
 
 		for name, property := range cloudformationresource.Properties {
 			properties := newresource.ResourceType.GetProperties()
@@ -200,7 +200,9 @@ func (in *cfnspec) SetResources(resources []resource.Resource) error {
 	return nil
 }
 
-func newResource(nameslice []string, cfnresource CloudFormationResource) *resource.Resource {
+func newResource(resourcename string, cfnresource CloudFormationResource) *resource.Resource {
+	nameslice := strings.Split(resourcename, "::")
+
 	return &resource.Resource{
 		Resource: kbresource.Resource{
 			Namespaced: true,
@@ -208,6 +210,7 @@ func newResource(nameslice []string, cfnresource CloudFormationResource) *resour
 			Version:    "v1alpha1",
 			Kind:       nameslice[len(nameslice)-1],
 		},
+		ResourceName:  resourcename,
 		ResourceType:  newBaseResource(cfnresource),
 		PropertyTypes: map[string]resource.ResourceType{},
 	}

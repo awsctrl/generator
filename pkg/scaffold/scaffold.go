@@ -24,9 +24,9 @@ import (
 	"html/template"
 	"path/filepath"
 
+	"github.com/spf13/afero"
 	"go.awsctrl.io/generator/pkg/input"
 	"go.awsctrl.io/generator/pkg/resource"
-	"github.com/spf13/afero"
 	"golang.org/x/tools/imports"
 
 	"github.com/Masterminds/sprig"
@@ -107,6 +107,7 @@ func funcMap() template.FuncMap {
 	funcs := map[string]interface{}{
 		"lowerfirst": lowerfirst,
 		"pluralize":  flect.Pluralize,
+		"noescape":   noescape,
 	}
 
 	return funcs
@@ -116,4 +117,8 @@ func lowerfirst(str string) string {
 	a := []rune(str)
 	a[0] = unicode.ToLower(a[0])
 	return string(a)
+}
+
+func noescape(str string) template.HTML {
+	return template.HTML(str)
 }

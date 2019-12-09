@@ -18,5 +18,5 @@ package main
 import "go.awsctrl.io/generator/cmd"
 
 func main() {
-  cmd.Execute()
+	cmd.Execute()
 }

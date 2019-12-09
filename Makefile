@@ -13,8 +13,16 @@
 # limitations under the License.
 
 # Test will run the tests
-test:
+test: vet fmt
 	go test ./... -coverprofile coverage.txt -covermode atomic
+
+# Run go fmt against code
+fmt:
+	go fmt ./...
+
+# Run go vet against code
+vet:
+	go vet ./...
 
 # Build will build the go binary
 build:

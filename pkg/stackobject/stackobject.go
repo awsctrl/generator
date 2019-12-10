@@ -111,13 +111,16 @@ func (in *StackObject) loopTemplateProperties(lines []string, attrName, paramBas
 			lines = appendstrf(lines, "for _, item := range in.Spec.%v {", name)
 			lines = appendstrf(lines, "%v := %v.%v_%v{}", propertyTypeName, groupLower, kind, property.GetItemType())
 			lines = appendblank(lines)
-			propType, ok := in.Resource.PropertyTypes[property.GetItemType()]
-			if !ok {
-				fmt.Printf("failed loading subresource %v", property.GetItemType())
-				os.Exit(1)
-			}
 
-			lines = in.loopTemplateProperties(lines, propertyTypeName, "item", propType.GetProperties())
+			if property.GetItemType() != "Tag" {
+				propType, ok := in.Resource.PropertyTypes[property.GetItemType()]
+				if !ok {
+					fmt.Printf("failed loading subresource %v", property.GetItemType())
+					os.Exit(1)
+				}
+
+				lines = in.loopTemplateProperties(lines, propertyTypeName, "item", propType.GetProperties())
+			}
 
 			lines = appendstrf(lines, "}")
 			lines = appendblank(lines)

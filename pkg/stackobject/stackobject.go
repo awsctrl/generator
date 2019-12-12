@@ -97,8 +97,21 @@ func (in *StackObject) loopTemplateProperties(lines []string, attrName, paramBas
 
 	for name, property := range propertyMap {
 		if property.IsParameter() {
-			lines = appendstrf(lines, `if %v.%v != "" {`, paramBase, name)
-			lines = appendstrf(lines, `%v.%v = %v.%v`, attrName, name, paramBase, name)
+
+			if property.GetType() == "Json" {
+				// lines = appendstrf(lines, `if !reflect.DeepEqual(%v.%v, unstructured.Unstructured{}) {`, paramBase, name)
+				// lines = appendstrf(lines, "%v, err := %v.%v.MarshalJSON()", attrName+"JSON", paramBase, name)
+				// lines = appendstrf(lines, `if err != nil { return "", err }`)
+				// lines = appendstrf(lines, `%v.%v = %v`, attrName, name, attrName+"JSON")
+				lines = appendstrf(lines, `if %v.%v != "" {`, paramBase, name)
+				lines = appendstrf(lines, `%v := make(map[string]interface{})`, attrName+"JSON")
+				lines = appendstrf(lines, "err := json.Unmarshal([]byte(%v.%v), &%v)", paramBase, name, attrName+"JSON")
+				lines = appendstrf(lines, `if err != nil { return "", err }`)
+				lines = appendstrf(lines, `%v.%v = %v`, attrName, name, attrName+"JSON")
+			} else {
+				lines = appendstrf(lines, `if %v.%v != "" {`, paramBase, name)
+				lines = appendstrf(lines, `%v.%v = %v.%v`, attrName, name, paramBase, name)
+			}
 			lines = appendstrf(lines, "}")
 			lines = appendblank(lines)
 		}

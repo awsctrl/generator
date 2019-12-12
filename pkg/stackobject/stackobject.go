@@ -119,13 +119,42 @@ func (in *StackObject) loopTemplateProperties(lines []string, attrName, paramBas
 		if property.IsList() {
 			listAttrName := attrName + name
 			propertyTypeName := attrName + property.GetItemType()
-			lines = appendstrf(lines, "%v := []%v.%v_%v{}", listAttrName, groupLower, kind, property.GetItemType())
-			lines = appendblank(lines)
-			lines = appendstrf(lines, "for _, item := range in.Spec.%v {", name)
-			lines = appendstrf(lines, "%v := %v.%v_%v{}", propertyTypeName, groupLower, kind, property.GetItemType())
-			lines = appendblank(lines)
 
-			if property.GetItemType() != "Tag" {
+			if property.GetItemType() == "Tag" {
+				// TODO(christopherhein): implement tags, right now this causes issues with -
+				// https://github.com/kubernetes-sigs/controller-tools/blob/master/pkg/crd/flatten.go#L124-L127
+
+				// tagGroup := "tags"
+				// tagKind := "Tag"
+				// lines = appendstrf(lines, "%v := []%v.%v{}", listAttrName, tagGroup, tagKind)
+				// lines = appendblank(lines)
+				// lines = appendstrf(lines, "for _, item := range in.Spec.%v {", name)
+				// lines = appendstrf(lines, "%v := %v.%v{}", propertyTypeName, tagGroup, tagKind)
+				// lines = appendblank(lines)
+
+				// lines = appendstrf(lines, `if %v.%v != "" {`, "item", "Key")
+				// lines = appendstrf(lines, `%v.%v = %v.%v`, propertyTypeName, "Key", "item", "Key")
+				// lines = appendstrf(lines, "}")
+				// lines = appendblank(lines)
+
+				// lines = appendstrf(lines, `if %v.%v != "" {`, "item", "Value")
+				// lines = appendstrf(lines, `%v.%v = %v.%v`, propertyTypeName, "Value", "item", "Value")
+				// lines = appendstrf(lines, "}")
+				// lines = appendblank(lines)
+
+				// lines = appendstrf(lines, "}")
+				// lines = appendblank(lines)
+				// lines = appendstrf(lines, "if len(%v) > 0 {", listAttrName)
+				// lines = appendstrf(lines, `%v.%v = %v`, attrName, name, listAttrName)
+				// lines = appendstrf(lines, "}")
+			} else {
+
+				lines = appendstrf(lines, "%v := []%v.%v_%v{}", listAttrName, groupLower, kind, property.GetItemType())
+				lines = appendblank(lines)
+				lines = appendstrf(lines, "for _, item := range in.Spec.%v {", name)
+				lines = appendstrf(lines, "%v := %v.%v_%v{}", propertyTypeName, groupLower, kind, property.GetItemType())
+				lines = appendblank(lines)
+
 				propType, ok := in.Resource.PropertyTypes[property.GetItemType()]
 				if !ok {
 					fmt.Printf("failed loading subresource %v", property.GetItemType())
@@ -133,13 +162,13 @@ func (in *StackObject) loopTemplateProperties(lines []string, attrName, paramBas
 				}
 
 				lines = in.loopTemplateProperties(lines, propertyTypeName, "item", propType.GetProperties())
-			}
 
-			lines = appendstrf(lines, "}")
-			lines = appendblank(lines)
-			lines = appendstrf(lines, "if len(%v) > 0 {", listAttrName)
-			lines = appendstrf(lines, `%v.%v = %v`, attrName, name, listAttrName)
-			lines = appendstrf(lines, "}")
+				lines = appendstrf(lines, "}")
+				lines = appendblank(lines)
+				lines = appendstrf(lines, "if len(%v) > 0 {", listAttrName)
+				lines = appendstrf(lines, `%v.%v = %v`, attrName, name, listAttrName)
+				lines = appendstrf(lines, "}")
+			}
 
 		}
 	}
@@ -175,6 +204,7 @@ import (
 	cfnhelpers "go.awsctrl.io/manager/aws/cloudformation"
 	
 	goformation "github.com/awslabs/goformation/v3/cloudformation"
+	"github.com/awslabs/goformation/v3/cloudformation/tags"
 	"github.com/awslabs/goformation/v3/cloudformation/{{ .Resource.Group  }}"
 	"github.com/awslabs/goformation/v3/intrinsics"
 )

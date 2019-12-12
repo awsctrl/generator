@@ -65,8 +65,11 @@ type {{ .Resource.Kind }}Spec struct {
 	metav1alpha1.CloudFormationMeta ` + "`" + `json:",inline"` + "`" + `
 
 	{{ range $name, $property := .Resource.ResourceType.GetProperties }}
+	{{/* TODO(christopherhein): Implement Tagging */}}
+	{{ if ne $name "Tags" }}
 	// {{ $name }} {{ $property.GetDocumentation }}
 	{{ $name }} {{ $property.GetGoType $.Resource.Kind }} ` + "`" + `json:"{{ $name | lowerfirst }}{{ if not $property.GetRequired }},omitempty{{ end }}" cloudformation:"{{ $name }},Parameter"` + "`" + `
+	{{ end }}
 	{{ end }}
 }
 

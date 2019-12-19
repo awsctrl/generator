@@ -16,6 +16,34 @@ limitations under the License.
 
 package resource
 
+import "strings"
+
+// IdOrArn will return try if the name is an id or arn
+func IdOrArn(name string) bool {
+	return IsId(name) || IsArn(name)
+}
+
+// IsArn checks if it's an Id
+func IsId(name string) bool {
+	return strings.HasSuffix(name, "Id")
+}
+
+// IsArn checks if it's an Arn
+func IsArn(name string) bool {
+	return strings.HasSuffix(name, "Arn")
+}
+
+// TrimIdOrArn will remove the id or arn declaration
+func TrimIdOrArn(name string) string {
+	var stripWord string
+	if IsId(name) {
+		stripWord = "Id"
+	} else if IsArn(name) {
+		stripWord = "Arn"
+	}
+	return name[:len(name)-len(stripWord)]
+}
+
 // GetDocumentation returns the documentation link
 func (in *BaseResource) GetDocumentation() string {
 	return in.Documentation
@@ -34,8 +62,15 @@ func (in *BaseResource) SetProperties(props map[string]Property) {
 }
 
 // GetAttributes returns the attrs
-func (in *BaseResource) GetAttributes() map[string]map[string]string {
+func (in *BaseResource) GetAttributes() map[string]interface{} {
 	return in.Attributes
+}
+
+// SetAttributes returns the properties
+func (in *BaseResource) SetAttributes(attributes map[string]interface{}) {
+	in.mux.Lock()
+	defer in.mux.Unlock()
+	in.Attributes = attributes
 }
 
 // GetDocumentation returns the documentation link
@@ -63,16 +98,32 @@ func (in *BaseProperty) IsParameter() bool {
 	switch in.GetType() {
 	case "String":
 		return true
-	case "List":
-		if in.GetItemType() != "String" {
-			return false
-		}
+	case "Integer":
 		return true
+	case "Double":
+		return true
+	case "Boolean":
+		return true
+	case "List":
+		return false
 	case "Json":
 		return true
 	default:
 		return false
 	}
+}
+
+// IsListParameter will make a property a parameter
+func (in *BaseProperty) IsListParameter() bool {
+	switch in.GetItemType() {
+	case "String":
+		return true
+	case "Integer":
+		return true
+	case "Double":
+		return true
+	}
+	return false
 }
 
 // IsList will return if type is a list
@@ -85,12 +136,30 @@ func (in *BaseProperty) IsList() bool {
 	}
 }
 
+// IsMap will return type is a map
+func (in *BaseProperty) IsMap() bool {
+	switch in.GetType() {
+	case "Map":
+		return true
+	default:
+		return false
+	}
+}
+
 // GetGoType will return the type for the golang types
 func (in *BaseProperty) GetGoType(kind string) string {
+	return in.ConstructGoType(kind, "[]")
+}
+
+// GetSingularGoType will return the type for the golang types
+func (in *BaseProperty) GetSingularGoType(kind string) string {
+	return in.ConstructGoType(kind, "")
+}
+
+// ConstructGoType will return the type for the golang types
+func (in *BaseProperty) ConstructGoType(kind string, plural string) string {
 	switch in.Type {
 	case "Json":
-		return "string"
-	case "Map":
 		return "string"
 	case "String":
 		return "string"
@@ -100,6 +169,23 @@ func (in *BaseProperty) GetGoType(kind string) string {
 		return "int"
 	case "Boolean":
 		return "bool"
+	case "Map":
+		var itemtype string
+		switch in.ItemType {
+		case "String":
+			itemtype = "string"
+		case "Boolean":
+			itemtype = "bool"
+		default:
+			itemtype = kind + "_" + in.ItemType
+		}
+
+		base := ""
+		if plural == "[]" {
+			base = "map[string]"
+		}
+		return base + itemtype
+
 	case "List":
 		var itemtype string
 		switch in.ItemType {
@@ -117,7 +203,7 @@ func (in *BaseProperty) GetGoType(kind string) string {
 			itemtype = kind + "_" + in.ItemType
 		}
 
-		return "[]" + itemtype
+		return plural + itemtype
 	}
 	return kind + "_" + in.Type
 }

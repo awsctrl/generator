@@ -19,10 +19,12 @@ package types
 
 import (
 	"fmt"
-	"go.awsctrl.io/generator/pkg/input"
-	"go.awsctrl.io/generator/pkg/resource"
 	"path/filepath"
 	"strings"
+	"unicode"
+
+	"go.awsctrl.io/generator/pkg/input"
+	"go.awsctrl.io/generator/pkg/resource"
 )
 
 var _ input.File = &Types{}
@@ -47,6 +49,82 @@ func (in *Types) GetInput() input.Input {
 	return in.Input
 }
 
+// GetProperties returns the attributes for all resource types
+func (in *Types) GetProperties(props map[string]resource.Property) string {
+	lines := []string{}
+	for name, property := range props {
+		originalname := name
+		if resource.IdOrArn(originalname) && property.GetType() == "String" {
+			name = resource.TrimIdOrArn(name)
+		}
+
+		// TODO(christopherhein) implement tags
+		if name == "Tags" {
+			// fmt.Printf("tags resource found %+v\n", property)
+			continue
+		}
+		lines = appendstrf(lines, `// %v %v`, name, property.GetDocumentation())
+		required := ""
+		if !property.GetRequired() {
+			required = ",omitempty"
+		}
+		param := ""
+		if property.IsParameter() {
+			param = ",Parameter"
+		}
+
+		goType := property.GetGoType(in.Resource.Kind)
+		if resource.IdOrArn(originalname) && property.GetType() == "String" {
+			goType = "metav1alpha1.ObjectReference"
+		}
+
+		lines = appendstrf(lines, `%v %v `+"`"+`json:"%v%v" cloudformation:"%v%v"`+"`", name, goType, lowerfirst(name), required, originalname, param)
+		lines = appendblank(lines)
+	}
+	return strings.Join(lines, "\n")
+}
+
+// GetResourceProperties will return the props
+func (in *Types) GetResourceProperties() string {
+	return in.GetProperties(in.Resource.ResourceType.GetProperties())
+}
+
+// GetPropertyTypes will return the property types
+func (in *Types) GetPropertyTypes() string {
+	lines := []string{}
+	// {{ range $resourcename, $resource := .Resource.PropertyTypes }}// {{ $.Resource.Kind }}_{{ $resourcename }} defines the desired state of {{ $.Resource.Kind }}{{ $resourcename }}
+	// type {{ $.Resource.Kind }}_{{ $resourcename }} struct {
+	//  {{ range $name, $property := $resource.GetProperties }}
+	// 	// {{ $name }} {{ $property.GetDocumentation }}
+	// 	{{ $name }} {{ $property.GetGoType $.Resource.Kind }} ` + "`" + `json:"{{ $name | lowerfirst }}{{ if not $property.GetRequired }},omitempty{{ end }}" cloudformation:"{{ $name }},Parameter"` + "`" + `
+	// 	{{ end }}
+	// }
+	// {{ end }}
+	for resourcename, resource := range in.Resource.PropertyTypes {
+		lines = appendstrf(lines, `// %v_%v defines the desired state of %v%v`, in.Resource.Kind, resourcename, in.Resource.Kind, resourcename)
+		lines = appendstrf(lines, `type %v_%v struct {`, in.Resource.Kind, resourcename)
+		lines = appendstrf(lines, in.GetProperties(resource.GetProperties()))
+		lines = appendstrf(lines, `}`)
+		lines = appendblank(lines)
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+func appendstrf(slice []string, temp string, a ...interface{}) []string {
+	return append(slice, fmt.Sprintf(temp, a...))
+}
+
+func appendblank(slice []string) []string {
+	return append(slice, "")
+}
+
+func lowerfirst(str string) string {
+	a := []rune(str)
+	a[0] = unicode.ToLower(a[0])
+	return string(a)
+}
+
 const typesTemplate = `{{ .Boilerplate }}
 
 package {{ .Resource.Version }}
@@ -63,27 +141,26 @@ import (
 // {{ .Resource.Kind }}Spec defines the desired state of {{ .Resource.Kind }}
 type {{ .Resource.Kind }}Spec struct {
 	metav1alpha1.CloudFormationMeta ` + "`" + `json:",inline"` + "`" + `
-
-	{{ range $name, $property := .Resource.ResourceType.GetProperties }}
-	{{/* TODO(christopherhein): Implement Tagging */}}
-	{{ if ne $name "Tags" }}
-	// {{ $name }} {{ $property.GetDocumentation }}
-	{{ $name }} {{ $property.GetGoType $.Resource.Kind }} ` + "`" + `json:"{{ $name | lowerfirst }}{{ if not $property.GetRequired }},omitempty{{ end }}" cloudformation:"{{ $name }},Parameter"` + "`" + `
-	{{ end }}
-	{{ end }}
+	
+	{{ noescape .GetResourceProperties }}
 }
 
-{{ range $resourcename, $resource := .Resource.PropertyTypes }}// {{ $.Resource.Kind }}_{{ $resourcename }} defines the desired state of {{ $.Resource.Kind }}{{ $resourcename }}
-type {{ $.Resource.Kind }}_{{ $resourcename }} struct { {{ range $name, $property := $resource.GetProperties }}
-	// {{ $name }} {{ $property.GetDocumentation }}
-	{{ $name }} {{ $property.GetGoType $.Resource.Kind }} ` + "`" + `json:"{{ $name | lowerfirst }}{{ if not $property.GetRequired }},omitempty{{ end }}" cloudformation:"{{ $name }},Parameter"` + "`" + `
-	{{ end }}
-}
-{{ end }}
+{{ noescape .GetPropertyTypes }}
 
 // {{ .Resource.Kind }}Status defines the observed state of {{ .Resource.Kind }}
 type {{ .Resource.Kind }}Status struct {
 	metav1alpha1.StatusMeta ` + "`" + `json:",inline"` + "`" + `
+}
+
+// {{ .Resource.Kind }}Output defines the stack outputs
+type {{ .Resource.Kind }}Output struct {
+	// {{ .Resource.ResourceType.GetDocumentation }}
+	Ref string ` + "`" + `json:"ref,omitempty"` + "`" + `
+
+	{{ range $name, $attr := .Resource.ResourceType.GetAttributes }}
+	// {{ $name }} defines the {{ $name }}
+	{{ $name }} string ` + "`" + `json:"{{ $name | lowerfirst }},omitempty" cloudformation:"{{ $name }},Output"` + "`" + `
+	{{ end }}
 }
 
 // +kubebuilder:object:root=true

@@ -24,6 +24,7 @@ import (
 	"go.awsctrl.io/generator/pkg/controller"
 	"go.awsctrl.io/generator/pkg/controllermanager"
 	"go.awsctrl.io/generator/pkg/group"
+	"go.awsctrl.io/generator/pkg/kustomize"
 	"go.awsctrl.io/generator/pkg/stackobject"
 	"go.awsctrl.io/generator/pkg/types"
 
@@ -63,6 +64,7 @@ func (a *API) Build(r *resource.Resource, rs []resource.Resource) (err error) {
 		&stackobject.StackObject{Resource: r, Input: *in, Resources: rs},
 		&controller.Controller{Resource: r, Input: *in, Resources: rs},
 		&controllermanager.ControllerManager{Resource: r, Input: *in, Resources: rs},
+		&kustomize.CRD{Resource: r, Input: *in, Resources: rs},
 	}
 
 	s := scaffold.New(a.fs, r)

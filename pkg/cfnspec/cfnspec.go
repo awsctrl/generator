@@ -128,6 +128,8 @@ func (in *cfnspec) GenerateResources() error {
 
 			newresource.ResourceType.SetProperties(properties)
 
+			newresource.ResourceType.SetAttributes(newresource.ResourceType.GetAttributes())
+
 		}
 		resources = append(resources, *newresource)
 	}
@@ -217,9 +219,14 @@ func newResource(resourcename string, cfnresource CloudFormationResource) *resou
 }
 
 func newBaseResource(cfnresource CloudFormationResource) *resource.BaseResource {
+	attrs := map[string]interface{}{}
+	for name, prop := range cfnresource.Attributes {
+		attrs[name] = &prop
+	}
 	return &resource.BaseResource{
 		Properties:    map[string]resource.Property{},
 		Documentation: cfnresource.Documentation,
+		Attributes:    attrs,
 	}
 }
 

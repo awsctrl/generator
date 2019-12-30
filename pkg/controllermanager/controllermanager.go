@@ -70,14 +70,14 @@ package controllermanager
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/dynamic"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	{{ range $group, $version := .Groups }}
 	{{ $group }}{{ $version }} "go.awsctrl.io/manager/apis/{{ $group }}/{{ $version }}"
 	"go.awsctrl.io/manager/controllers/{{ $group }}"
 	{{ end }}
-
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 // AddAllSchemes will configure all the schemes
@@ -89,11 +89,12 @@ func AddAllSchemes(scheme *runtime.Scheme) error {
 }
 
 // SetupControllers will configure your manager with all controllers
-func SetupControllers(mgr manager.Manager) (reconciler string, err error) {
+func SetupControllers(mgr manager.Manager, dynamicClient dynamic.Interface) (reconciler string, err error) {
 
 	{{ range $resource := .Resources }}
 	if err = (&{{ $resource.Resource.Group }}.{{ $resource.Resource.Kind }}Reconciler{
 		Client: mgr.GetClient(),
+		Interface: dynamicClient,
 		Log:    ctrl.Log.WithName("controllers").WithName("{{ $resource.Resource.Group }}").WithName("{{ $resource.Resource.Kind | lower }}"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {

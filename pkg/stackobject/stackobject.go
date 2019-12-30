@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode"
 
 	"go.awsctrl.io/generator/pkg/input"
 	"go.awsctrl.io/generator/pkg/resource"
@@ -51,7 +52,7 @@ func (in *StackObject) GetInput() input.Input {
 
 // GenerateTemplateFunctions generates all the resource definition functions
 func (in *StackObject) GenerateTemplateFunctions() string {
-	lines := []string{"// GenerateTemplateFunctions"}
+	lines := []string{}
 
 	groupLower := strings.ToLower(in.Resource.Group)
 	kind := in.Resource.Kind
@@ -91,29 +92,133 @@ func (in *StackObject) GenerateTemplateFunctions() string {
 	return strings.Join(lines, "\n")
 }
 
+type ifblock struct {
+	key        string
+	defaultVal string
+}
+
 func (in *StackObject) loopTemplateProperties(lines []string, attrName, paramBase string, propertyMap map[string]resource.Property) []string {
 	groupLower := strings.ToLower(in.Resource.Group)
 	kind := in.Resource.Kind
 
 	for name, property := range propertyMap {
+		originalname := name
+		if resource.IdOrArn(originalname) && property.GetType() == "String" {
+			name = resource.TrimIdOrArn(name)
+		}
 		if property.IsParameter() {
 
 			if property.GetType() == "Json" {
-				// lines = appendstrf(lines, `if !reflect.DeepEqual(%v.%v, unstructured.Unstructured{}) {`, paramBase, name)
-				// lines = appendstrf(lines, "%v, err := %v.%v.MarshalJSON()", attrName+"JSON", paramBase, name)
-				// lines = appendstrf(lines, `if err != nil { return "", err }`)
-				// lines = appendstrf(lines, `%v.%v = %v`, attrName, name, attrName+"JSON")
 				lines = appendstrf(lines, `if %v.%v != "" {`, paramBase, name)
 				lines = appendstrf(lines, `%v := make(map[string]interface{})`, attrName+"JSON")
 				lines = appendstrf(lines, "err := json.Unmarshal([]byte(%v.%v), &%v)", paramBase, name, attrName+"JSON")
 				lines = appendstrf(lines, `if err != nil { return "", err }`)
 				lines = appendstrf(lines, `%v.%v = %v`, attrName, name, attrName+"JSON")
+			} else if resource.IdOrArn(originalname) && property.GetType() == "String" {
+				subAttrName := attrName + name + "Item"
+				ifblocks := []ifblock{
+					ifblock{
+						key:        "Kind",
+						defaultVal: `"Deployment"`,
+					},
+					ifblock{
+						key:        "APIVersion",
+						defaultVal: `"apigateway.awsctrl.io/v1alpha1"`,
+					},
+					ifblock{
+						key:        "Namespace",
+						defaultVal: `in.Namespace`,
+					},
+				}
+
+				lines = appendstrf(lines, `// TODO(christopherhein) move these to a defaulter`)
+				lines = appendstrf(lines, `%v := %v.%v.DeepCopy()`, subAttrName, paramBase, name)
+				lines = appendblank(lines)
+
+				for _, s := range ifblocks {
+					lines = appendstrf(lines, `if %v.ObjectRef.%v == "" {`, subAttrName, s.key)
+					lines = appendstrf(lines, `%v.ObjectRef.%v = %v `, subAttrName, s.key, s.defaultVal)
+					lines = appendstrf(lines, `}`)
+					lines = appendblank(lines)
+				}
+				lines = appendstrf(lines, `%v.%v = *%v`, paramBase, name, subAttrName)
+				lines = appendstrf(lines, `%v, err := %v.%v.String(client)`, lowerfirst(originalname), paramBase, name)
+				lines = appendstrf(lines, `if err != nil {`)
+				lines = appendstrf(lines, `return "", err`)
+				lines = appendstrf(lines, `}`)
+				lines = appendblank(lines)
+				lines = appendstrf(lines, `if %v != "" {`, lowerfirst(originalname))
+				lines = appendstrf(lines, `%v.%v = %v`, attrName, originalname, lowerfirst(originalname))
+
 			} else {
-				lines = appendstrf(lines, `if %v.%v != "" {`, paramBase, name)
-				lines = appendstrf(lines, `%v.%v = %v.%v`, attrName, name, paramBase, name)
+				switch property.GetGoType(in.Resource.Kind) {
+				case "string":
+					lines = appendstrf(lines, `if %v.%v != "" {`, paramBase, name)
+				case "int":
+					if property.GetType() == "Double" {
+						lines = appendstrf(lines, `if float64(%v.%v) != %v.%v {`, paramBase, name, attrName, name)
+					} else {
+						lines = appendstrf(lines, `if %v.%v != %v.%v {`, paramBase, name, attrName, name)
+					}
+				case "bool":
+					lines = appendstrf(lines, `if %v.%v || !%v.%v {`, paramBase, name, paramBase, name)
+				}
+
+				switch property.GetType() {
+				case "Double":
+					lines = appendstrf(lines, `%v.%v = float64(%v.%v)`, attrName, name, paramBase, name)
+				default:
+					lines = appendstrf(lines, `%v.%v = %v.%v`, attrName, name, paramBase, name)
+				}
+
 			}
 			lines = appendstrf(lines, "}")
 			lines = appendblank(lines)
+		}
+
+		if property.IsMap() {
+			lines = appendstrf(lines, `if !reflect.DeepEqual(%v.%v, %v{}) {`, paramBase, name, property.GetGoType(kind))
+			if property.GetItemType() == "Boolean" || property.GetItemType() == "String" {
+				lines = appendstrf(lines, `%v.%v = %v.%v`, attrName, name, paramBase, name)
+			} else {
+				propertyTypeName := attrName + property.GetItemType()
+				lines = appendstrf(lines, `for key, prop := range %v.%v {`, paramBase, name)
+				lines = appendstrf(lines, `%v := %v.%v{}`, propertyTypeName, groupLower, property.GetSingularGoType(kind))
+
+				propType, ok := in.Resource.PropertyTypes[property.GetItemType()]
+				if !ok {
+					fmt.Printf("failed loading map subresource %v for resource kind %v and name %v\n", property.GetItemType(), kind, name)
+					os.Exit(1)
+				}
+
+				lines = in.loopTemplateProperties(lines, propertyTypeName, "prop", propType.GetProperties())
+
+				lines = appendstrf(lines, `%v.%v[key] = %v`, attrName, name, propertyTypeName)
+				lines = appendstrf(lines, `}`)
+			}
+			lines = appendstrf(lines, `}`)
+			lines = appendblank(lines)
+		}
+
+		if !property.IsList() && !property.IsMap() && !property.IsParameter() {
+			propertyTypeName := attrName + property.GetType()
+
+			lines = appendstrf(lines, `if !reflect.DeepEqual(%v.%v, %v{}) {`, paramBase, name, property.GetGoType(kind))
+			lines = appendstrf(lines, `%v := %v.%v{}`, propertyTypeName, groupLower, property.GetGoType(kind))
+			lines = appendblank(lines)
+
+			propType, ok := in.Resource.PropertyTypes[property.GetType()]
+			if !ok {
+				fmt.Printf("failed loading nested subresource %v for resource kind %v and name %v\n", property.GetType(), kind, name)
+				os.Exit(1)
+			}
+
+			lines = in.loopTemplateProperties(lines, propertyTypeName, fmt.Sprintf("%v.%v", paramBase, name), propType.GetProperties())
+
+			lines = appendstrf(lines, `%v.%v = &%v`, attrName, name, propertyTypeName)
+			lines = appendstrf(lines, `}`)
+			lines = appendblank(lines)
+
 		}
 
 		if property.IsList() {
@@ -121,6 +226,7 @@ func (in *StackObject) loopTemplateProperties(lines []string, attrName, paramBas
 			propertyTypeName := attrName + property.GetItemType()
 
 			if property.GetItemType() == "Tag" {
+				lines = appendstrf(lines, `// TODO(christopherhein): implement tags this could be easy now that I have the mechanims of nested objects`)
 				// TODO(christopherhein): implement tags, right now this causes issues with -
 				// https://github.com/kubernetes-sigs/controller-tools/blob/master/pkg/crd/flatten.go#L124-L127
 
@@ -147,17 +253,23 @@ func (in *StackObject) loopTemplateProperties(lines []string, attrName, paramBas
 				// lines = appendstrf(lines, "if len(%v) > 0 {", listAttrName)
 				// lines = appendstrf(lines, `%v.%v = %v`, attrName, name, listAttrName)
 				// lines = appendstrf(lines, "}")
+			} else if property.IsListParameter() {
+				lines = appendstrf(lines, `if len(%v.%v) > 0 {`, paramBase, name)
+				lines = appendstrf(lines, `%vItem := []%v{}`, attrName, property.GetSingularGoType(kind))
+				lines = appendstrf(lines, `%vItem = append(%vItem, %v.%v...)`, attrName, attrName, paramBase, name)
+				lines = appendstrf(lines, `%v.%v = %vItem`, attrName, name, attrName)
+				lines = appendstrf(lines, "}")
+				lines = appendblank(lines)
 			} else {
-
 				lines = appendstrf(lines, "%v := []%v.%v_%v{}", listAttrName, groupLower, kind, property.GetItemType())
 				lines = appendblank(lines)
-				lines = appendstrf(lines, "for _, item := range in.Spec.%v {", name)
+				lines = appendstrf(lines, "for _, item := range %v.%v {", paramBase, name)
 				lines = appendstrf(lines, "%v := %v.%v_%v{}", propertyTypeName, groupLower, kind, property.GetItemType())
 				lines = appendblank(lines)
 
 				propType, ok := in.Resource.PropertyTypes[property.GetItemType()]
 				if !ok {
-					fmt.Printf("failed loading subresource %v", property.GetItemType())
+					fmt.Printf("failed loading list subresource %v for resource kind %v and name %v\n", property.GetItemType(), kind, name)
 					os.Exit(1)
 				}
 
@@ -185,6 +297,12 @@ func appendblank(slice []string) []string {
 	return append(slice, "")
 }
 
+func lowerfirst(str string) string {
+	a := []rune(str)
+	a[0] = unicode.ToLower(a[0])
+	return string(a)
+}
+
 // Validate validates the values
 func (in *StackObject) Validate() error {
 	return in.Resource.Validate()
@@ -203,10 +321,11 @@ import (
 	cfnencoder "go.awsctrl.io/manager/encoding/cloudformation"
 	cfnhelpers "go.awsctrl.io/manager/aws/cloudformation"
 	
-	goformation "github.com/awslabs/goformation/v3/cloudformation"
-	"github.com/awslabs/goformation/v3/cloudformation/tags"
-	"github.com/awslabs/goformation/v3/cloudformation/{{ .Resource.Group  }}"
-	"github.com/awslabs/goformation/v3/intrinsics"
+	"k8s.io/client-go/dynamic"
+	goformation "github.com/awslabs/goformation/v4/cloudformation"
+	"github.com/awslabs/goformation/v4/cloudformation/tags"
+	"github.com/awslabs/goformation/v4/cloudformation/{{ .Resource.Group  }}"
+	"github.com/awslabs/goformation/v4/intrinsics"
 )
 
 // GetNotificationARNs is an autogenerated deepcopy function, will return notifications for stack
@@ -219,23 +338,29 @@ func (in *{{ .Resource.Kind }}) GetNotificationARNs() []string {
 }
 
 // GetTemplate will return the JSON version of the CFN to use.
-func (in *{{ .Resource.Kind }}) GetTemplate() (string, error) {
+func (in *{{ .Resource.Kind }}) GetTemplate(client dynamic.Interface) (string, error) {
+	if client == nil {
+		return "", fmt.Errorf("k8s client not loaded for template")
+	}
 	template := goformation.NewTemplate()
 
 	template.Description = "AWS Controller - {{ .Resource.Group  }}.{{ .Resource.Kind }} (ac-{TODO})"
+	
+	template.Outputs = map[string]interface{}{
+		"ResourceRef": map[string]interface{}{
+			"Value": cloudformation.Ref("{{ .Resource.Kind }}"),
+		},
+		{{ range $name, $attr := .Resource.ResourceType.GetAttributes }}
+		"{{ $name }}": map[string]interface{}{
+			"Value": cloudformation.GetAtt("{{ $.Resource.Kind }}", "{{ $name }}"),
+		},
+		{{ end }}
+	}
 
 	{{ noescape .GenerateTemplateFunctions }}
 
-	{{ if false }}
-	// template.Outputs["Ref"] = cfnhelpers.Output{
-	// 	Value: cloudformation.Ref("{{ .Resource.Kind }}"),
-	// 	Export: map[string]string{
-	// 		"Name": "{{ .Resource.Kind }}Ref",
-	// 	},
-	// }
-	{{ end }}
-
-	json, err := template.JSONWithOptions(&intrinsics.ProcessorOptions{NoEvaluateConditions: true})
+	// json, err := template.JSONWithOptions(&intrinsics.ProcessorOptions{NoEvaluateConditions: true})
+	json, err := template.JSON()
 	if err != nil {
 		return "", err
 	}

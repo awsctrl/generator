@@ -49,8 +49,8 @@ func (in *Controller) GetInput() input.Input {
 }
 
 // Validate validates the values
-func (g *Controller) Validate() error {
-	return g.Resource.Validate()
+func (c *Controller) Validate() error {
+	return c.Resource.Validate()
 }
 
 const controllerTemplate = `{{ .Boilerplate }}
@@ -64,6 +64,7 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/dynamic"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -73,14 +74,10 @@ import (
 	"go.awsctrl.io/manager/controllers/generic"
 )
 
-var (
-	// APIGVStr returns the group version for the resource
-	APIGVStr = v1alpha1.GroupVersion.String()
-)
-
 // {{ .Resource.Kind }}Reconciler reconciles a {{ .Resource.Kind }} object
 type {{ .Resource.Kind }}Reconciler struct {
 	client.Client
+	dynamic.Interface
 	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
@@ -108,7 +105,7 @@ func (r *{{ .Resource.Kind }}Reconciler) Reconcile(req ctrl.Request) (ctrl.Resul
 	}
 
 	var cfncontroller generic.Generic
-	if cfncontroller, err = generic.New(r.Client, r.Scheme); err != nil {
+	if cfncontroller, err = generic.New(r.Client, r.Interface, r.Scheme); err != nil {
 		return ctrl.Result{}, err
 	}
 

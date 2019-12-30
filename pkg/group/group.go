@@ -56,7 +56,7 @@ const groupTemplate = `{{ .Boilerplate }}
 // Package {{ .Resource.Version }} contains API Schema definitions for the {{ .Resource.Group }} {{.Resource.Version}} API group
 // +kubebuilder:object:generate=true
 // +groupName={{ .Resource.Group }}.{{ .Domain }}
-package {{ .Resource.Version }}
+package {{ .Resource.Version }} // import "go.{{ .Domain }}/manager/apis/{{ .Resource.Group }}/{{ .Resource.Version }}"
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"

@@ -45,8 +45,8 @@ func TestAPI_Build(t *testing.T) {
 			ShortNames: []string{"repo"},
 		},
 		ResourceType: &resource.BaseResource{
-			Attributes: map[string]map[string]string{
-				"Arn": map[string]string{
+			Attributes: map[string]interface{}{
+				"Arn": map[string]interface{}{
 					"PrimitiveType": "string",
 				},
 			},
@@ -54,7 +54,7 @@ func TestAPI_Build(t *testing.T) {
 			Properties: map[string]resource.Property{
 				"RepositoryName": &resource.BaseProperty{
 					Documentation: "http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecr-repository.html#cfn-ecr-repository-repositoryname",
-					Type:          "string",
+					Type:          "String",
 					Required:      false,
 					UpdateType:    resource.ImmutableType,
 				},
@@ -71,13 +71,13 @@ func TestAPI_Build(t *testing.T) {
 				Properties: map[string]resource.Property{
 					"LifecyclePolicyText": &resource.BaseProperty{
 						Documentation: "http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ecr-repository-lifecyclepolicy.html#cfn-ecr-repository-lifecyclepolicy-lifecyclepolicytext",
-						Type:          "string",
+						Type:          "String",
 						Required:      false,
 						UpdateType:    resource.MutableType,
 					},
 					"RegistryId": &resource.BaseProperty{
 						Documentation: "http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ecr-repository-lifecyclepolicy.html#cfn-ecr-repository-lifecyclepolicy-registryid",
-						Type:          "string",
+						Type:          "String",
 						Required:      false,
 						UpdateType:    resource.MutableType,
 					},

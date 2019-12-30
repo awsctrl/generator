@@ -48,7 +48,10 @@ type ResourceType interface {
 	SetProperties(map[string]Property)
 
 	// GetAttributes returns attributes
-	GetAttributes() map[string]map[string]string
+	GetAttributes() map[string]interface{}
+
+	// SetAttributes edits all attributes
+	SetAttributes(map[string]interface{})
 }
 
 // UpdateType defines enum of param types
@@ -70,11 +73,20 @@ type Property interface {
 	// GetGoType returns the golang type
 	GetGoType(string) string
 
+	// GetSingularGoType returns the golang type
+	GetSingularGoType(string) string
+
 	// IsParameter will return if the property is a parameter
 	IsParameter() bool
 
+	// IsListParameter will return if the list type is parameterable
+	IsListParameter() bool
+
 	// IsList will return if the property is a list
 	IsList() bool
+
+	// IsMap will return if the property is a map
+	IsMap() bool
 
 	// GetDefault returns default values for params
 	GetDefault() string
@@ -93,7 +105,7 @@ type Property interface {
 type BaseResource struct {
 	mux           sync.Mutex
 	Documentation string
-	Attributes    map[string]map[string]string
+	Attributes    map[string]interface{}
 	Properties    map[string]Property
 }
 

@@ -85,7 +85,7 @@ func (in *StackObject) GenerateTemplateFunctions() string {
 
 	lines = in.loopTemplateProperties(lines, groupLower+kind, "in.Spec", in.Resource.ResourceType.GetProperties())
 
-	lines = appendstrf(lines, "template.Resources = map[string]goformation.Resource{")
+	lines = appendstrf(lines, "template.Resources = map[string]cloudformation.Resource{")
 	lines = appendstrf(lines, `"%v": %v,`, kind, attrName)
 	lines = appendstrf(lines, "}")
 
@@ -322,7 +322,7 @@ import (
 	cfnhelpers "go.awsctrl.io/manager/aws/cloudformation"
 	
 	"k8s.io/client-go/dynamic"
-	goformation "github.com/awslabs/goformation/v4/cloudformation"
+	"github.com/awslabs/goformation/v4/cloudformation"
 	"github.com/awslabs/goformation/v4/cloudformation/tags"
 	"github.com/awslabs/goformation/v4/cloudformation/{{ .Resource.Group  }}"
 	"github.com/awslabs/goformation/v4/intrinsics"
@@ -342,7 +342,7 @@ func (in *{{ .Resource.Kind }}) GetTemplate(client dynamic.Interface) (string, e
 	if client == nil {
 		return "", fmt.Errorf("k8s client not loaded for template")
 	}
-	template := goformation.NewTemplate()
+	template := cloudformation.NewTemplate()
 
 	template.Description = "AWS Controller - {{ .Resource.Group  }}.{{ .Resource.Kind }} (ac-{TODO})"
 	

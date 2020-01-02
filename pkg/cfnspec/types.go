@@ -32,7 +32,9 @@ type CloudFormationResource struct {
 
 // Attribute parses the attributes for a resource
 type Attribute struct {
-	PrimitiveType string `json:"PrimitiveType"`
+	PrimitiveType     string `json:"PrimitiveType"`
+	PrimitiveItemType string `json:"PrimitiveItemType"`
+	Type              string `json:"Type"`
 }
 
 // Property Defines a single property

@@ -45,9 +45,9 @@ func TestAPI_Build(t *testing.T) {
 			ShortNames: []string{"repo"},
 		},
 		ResourceType: &resource.BaseResource{
-			Attributes: map[string]interface{}{
-				"Arn": map[string]interface{}{
-					"PrimitiveType": "string",
+			Attributes: map[string]resource.Attribute{
+				"Arn": &resource.BaseAttribute{
+					PrimitiveType: "String",
 				},
 			},
 			Documentation: "http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecr-repository.html",

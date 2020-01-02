@@ -121,6 +121,12 @@ func (in *cfnspec) GenerateResources() error {
 	for resourcename, cloudformationresource := range in.GetSpecification().ResourceTypes {
 		newresource := newResource(resourcename, cloudformationresource)
 
+		for name, attribute := range cloudformationresource.Attributes {
+			attributes := newresource.ResourceType.GetAttributes()
+			attributes[name] = newBaseAttribute(attribute)
+			newresource.ResourceType.SetAttributes(attributes)
+		}
+
 		for name, property := range cloudformationresource.Properties {
 			properties := newresource.ResourceType.GetProperties()
 
@@ -226,7 +232,7 @@ func newBaseResource(cfnresource CloudFormationResource) *resource.BaseResource 
 	return &resource.BaseResource{
 		Properties:    map[string]resource.Property{},
 		Documentation: cfnresource.Documentation,
-		Attributes:    attrs,
+		Attributes:    map[string]resource.Attribute{},
 	}
 }
 
@@ -254,6 +260,24 @@ func newBaseProperty(property Property) *resource.BaseProperty {
 	}
 
 	return prop
+}
+
+func newBaseAttribute(attribute Attribute) *resource.BaseAttribute {
+	attr := &resource.BaseAttribute{}
+
+	if attribute.Type != "" {
+		attr.Type = attribute.Type
+	}
+
+	if attribute.PrimitiveType != "" {
+		attr.Type = attribute.PrimitiveType
+	}
+
+	if attribute.PrimitiveItemType != "" {
+		attr.PrimitiveItemType = attribute.PrimitiveItemType
+	}
+
+	return attr
 }
 
 func inSlice(slice []string, item string) bool {

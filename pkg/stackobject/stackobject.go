@@ -55,16 +55,17 @@ func (in *StackObject) GenerateAttributes() string {
 	lines := []string{}
 
 	for name, attr := range in.Resource.ResourceType.GetAttributes() {
-		// if attr.GetType() == "List" {
-		// 	continue
-		// }
+		if attr.GetType() == "List" {
+			continue
+		}
 		lines = appendstrf(lines, `"%v": map[string]interface{}{`, name)
 		if attr.GetType() == "String" || attr.GetType() == "Integer" {
 			lines = appendstrf(lines, `"Value": cloudformation.GetAtt("%v", "%v"),`, in.Resource.Kind, name)
 		}
-		if attr.GetType() == "List" {
-			lines = appendstrf(lines, `"Value": intrinsics.FnJoin(",", cloudformation.GetAtt("%v", "%v")),`, in.Resource.Kind, name)
-		}
+		// TODO(christopherhein): figure out how to make goformation output join functions
+		// if attr.GetType() == "List" {
+		// 	lines = appendstrf(lines, `"Value": intrinsics.FnJoin(",", cloudformation.GetAtt("%v", "%v")),`, in.Resource.Kind, name)
+		// }
 		lines = appendstrf(lines, `},`)
 	}
 
@@ -276,9 +277,13 @@ func (in *StackObject) loopTemplateProperties(lines []string, attrName, paramBas
 				// lines = appendstrf(lines, "}")
 			} else if property.IsListParameter() {
 				lines = appendstrf(lines, `if len(%v.%v) > 0 {`, paramBase, name)
-				lines = appendstrf(lines, `%vItem := []%v{}`, attrName, property.GetSingularGoType(kind))
-				lines = appendstrf(lines, `%vItem = append(%vItem, %v.%v...)`, attrName, attrName, paramBase, name)
-				lines = appendstrf(lines, `%v.%v = %vItem`, attrName, name, attrName)
+				if property.GetSingularGoType(kind) == "string" {
+					lines = appendstrf(lines, `%v.%v = %v.%v`, attrName, name, paramBase, name)
+				} else {
+					lines = appendstrf(lines, `%vItem := []%v{}`, attrName, property.GetSingularGoType(kind))
+					lines = appendstrf(lines, `%vItem = append(%vItem, %v.%v...)`, attrName, attrName, paramBase, name)
+					lines = appendstrf(lines, `%v.%v = %vItem`, attrName, name, attrName)
+				}
 				lines = appendstrf(lines, "}")
 				lines = appendblank(lines)
 			} else {

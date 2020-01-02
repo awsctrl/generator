@@ -48,10 +48,10 @@ type ResourceType interface {
 	SetProperties(map[string]Property)
 
 	// GetAttributes returns attributes
-	GetAttributes() map[string]interface{}
+	GetAttributes() map[string]Attribute
 
 	// SetAttributes edits all attributes
-	SetAttributes(map[string]interface{})
+	SetAttributes(map[string]Attribute)
 }
 
 // UpdateType defines enum of param types
@@ -61,6 +61,15 @@ const (
 	MutableType   UpdateType = "Mutable"
 	ImmutableType UpdateType = "Immutable"
 )
+
+// Attribute defines the attribute functions
+type Attribute interface {
+	// GetType returns the type whether primitive or plain
+	GetType() string
+
+	// GetItemType returns an item type if its a list or map
+	GetItemType() string
+}
 
 // Property returns the property functions
 type Property interface {
@@ -105,7 +114,7 @@ type Property interface {
 type BaseResource struct {
 	mux           sync.Mutex
 	Documentation string
-	Attributes    map[string]interface{}
+	Attributes    map[string]Attribute
 	Properties    map[string]Property
 }
 
@@ -117,4 +126,12 @@ type BaseProperty struct {
 	Type          string
 	UpdateType    UpdateType
 	ItemType      string
+}
+
+// BaseAttribute contains the attributes for attributes
+type BaseAttribute struct {
+	Value             string `json:"Value,omitempty"`
+	Type              string `json:"Type,omitempty"`
+	PrimitiveType     string `json:"PrimitiveType,omitempty"`
+	PrimitiveItemType string `json:"PrimitiveItemType,omitempty"`
 }

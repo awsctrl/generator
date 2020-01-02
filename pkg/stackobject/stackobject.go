@@ -50,6 +50,27 @@ func (in *StackObject) GetInput() input.Input {
 	return in.Input
 }
 
+// GenerateAttributes will return the templating functions
+func (in *StackObject) GenerateAttributes() string {
+	lines := []string{}
+
+	for name, attr := range in.Resource.ResourceType.GetAttributes() {
+		// if attr.GetType() == "List" {
+		// 	continue
+		// }
+		lines = appendstrf(lines, `"%v": map[string]interface{}{`, name)
+		if attr.GetType() == "String" || attr.GetType() == "Integer" {
+			lines = appendstrf(lines, `"Value": cloudformation.GetAtt("%v", "%v"),`, in.Resource.Kind, name)
+		}
+		if attr.GetType() == "List" {
+			lines = appendstrf(lines, `"Value": intrinsics.FnJoin(",", cloudformation.GetAtt("%v", "%v")),`, in.Resource.Kind, name)
+		}
+		lines = appendstrf(lines, `},`)
+	}
+
+	return strings.Join(lines, "\n")
+}
+
 // GenerateTemplateFunctions generates all the resource definition functions
 func (in *StackObject) GenerateTemplateFunctions() string {
 	lines := []string{}
@@ -350,11 +371,7 @@ func (in *{{ .Resource.Kind }}) GetTemplate(client dynamic.Interface) (string, e
 		"ResourceRef": map[string]interface{}{
 			"Value": cloudformation.Ref("{{ .Resource.Kind }}"),
 		},
-		{{ range $name, $attr := .Resource.ResourceType.GetAttributes }}
-		"{{ $name }}": map[string]interface{}{
-			"Value": cloudformation.GetAtt("{{ $.Resource.Kind }}", "{{ $name }}"),
-		},
-		{{ end }}
+		{{ noescape .GenerateAttributes }}
 	}
 
 	{{ noescape .GenerateTemplateFunctions }}

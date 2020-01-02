@@ -44,6 +44,28 @@ func TrimIdOrArn(name string) string {
 	return name[:len(name)-len(stripWord)]
 }
 
+// GetType return the type
+func (in *BaseAttribute) GetType() string {
+	if in.Type != "" {
+		return in.Type
+	}
+	if in.PrimitiveType != "" {
+		return in.Type
+	}
+	return ""
+}
+
+// GetItemType return the type
+func (in *BaseAttribute) GetItemType() string {
+	if in.Type != "" {
+		return in.Type
+	}
+	if in.PrimitiveType != "" {
+		return in.Type
+	}
+	return ""
+}
+
 // GetDocumentation returns the documentation link
 func (in *BaseResource) GetDocumentation() string {
 	return in.Documentation
@@ -62,12 +84,12 @@ func (in *BaseResource) SetProperties(props map[string]Property) {
 }
 
 // GetAttributes returns the attrs
-func (in *BaseResource) GetAttributes() map[string]interface{} {
+func (in *BaseResource) GetAttributes() map[string]Attribute {
 	return in.Attributes
 }
 
 // SetAttributes returns the properties
-func (in *BaseResource) SetAttributes(attributes map[string]interface{}) {
+func (in *BaseResource) SetAttributes(attributes map[string]Attribute) {
 	in.mux.Lock()
 	defer in.mux.Unlock()
 	in.Attributes = attributes

@@ -18,28 +18,44 @@ package resource
 
 import "strings"
 
+// IdsOrArns will return if it's a list of ids or arns
+func IdsOrArns(name string) bool {
+	return IsId(name, "s") || IsArn(name, "s")
+}
+
 // IdOrArn will return try if the name is an id or arn
 func IdOrArn(name string) bool {
-	return IsId(name) || IsArn(name)
+	return IsId(name, "") || IsArn(name, "")
 }
 
 // IsArn checks if it's an Id
-func IsId(name string) bool {
-	return strings.HasSuffix(name, "Id")
+func IsId(name, postfix string) bool {
+	return strings.HasSuffix(name, "Id"+postfix)
 }
 
 // IsArn checks if it's an Arn
-func IsArn(name string) bool {
-	return strings.HasSuffix(name, "Arn")
+func IsArn(name, postfix string) bool {
+	return strings.HasSuffix(name, "Arn"+postfix)
 }
 
 // TrimIdOrArn will remove the id or arn declaration
 func TrimIdOrArn(name string) string {
 	var stripWord string
-	if IsId(name) {
+	if IsId(name, "") {
 		stripWord = "Id"
-	} else if IsArn(name) {
+	} else if IsArn(name, "") {
 		stripWord = "Arn"
+	}
+	return name[:len(name)-len(stripWord)]
+}
+
+// TrimIdsOrArns will remove the id or arn declaration
+func TrimIdsOrArns(name string) string {
+	var stripWord string
+	if IsId(name, "s") {
+		stripWord = "Ids"
+	} else if IsArn(name, "s") {
+		stripWord = "Arns"
 	}
 	return name[:len(name)-len(stripWord)]
 }

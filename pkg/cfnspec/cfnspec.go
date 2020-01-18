@@ -29,7 +29,8 @@ import (
 	kbresource "sigs.k8s.io/kubebuilder/pkg/scaffold/resource"
 )
 
-var url = "https://d1uauaxba7bl26.cloudfront.net/latest/gzip/CloudFormationResourceSpecification.json"
+// var url = "https://d1uauaxba7bl26.cloudfront.net/latest/gzip/CloudFormationResourceSpecification.json"
+var url = "https://raw.githubusercontent.com/awsctrl/cfn-python-lint/master/src/cfnlint/data/CloudSpecs/us-east-2.json"
 
 type CFNSpec interface {
 	// Load will pull into the full Resource Specification

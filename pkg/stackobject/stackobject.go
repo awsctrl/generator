@@ -128,8 +128,12 @@ func (in *StackObject) loopTemplateProperties(lines []string, attrName, paramBas
 		if resource.IdOrArn(originalname) && property.GetType() == "String" {
 			name = resource.TrimIdOrArn(name)
 		}
-		if property.IsParameter() {
 
+		if resource.IdsOrArns(originalname) && property.GetItemType() == "String" {
+			name = resource.TrimIdsOrArns(name)
+		}
+
+		if property.IsParameter() {
 			if property.GetType() == "Json" {
 				lines = appendstrf(lines, `if %v.%v != "" {`, paramBase, name)
 				lines = appendstrf(lines, `%v := make(map[string]interface{})`, attrName+"JSON")
@@ -139,14 +143,6 @@ func (in *StackObject) loopTemplateProperties(lines []string, attrName, paramBas
 			} else if resource.IdOrArn(originalname) && property.GetType() == "String" {
 				subAttrName := attrName + name + "Item"
 				ifblocks := []ifblock{
-					ifblock{
-						key:        "Kind",
-						defaultVal: `"Deployment"`,
-					},
-					ifblock{
-						key:        "APIVersion",
-						defaultVal: `"apigateway.awsctrl.io/v1alpha1"`,
-					},
 					ifblock{
 						key:        "Namespace",
 						defaultVal: `in.Namespace`,
@@ -275,6 +271,32 @@ func (in *StackObject) loopTemplateProperties(lines []string, attrName, paramBas
 				// lines = appendstrf(lines, "if len(%v) > 0 {", listAttrName)
 				// lines = appendstrf(lines, `%v.%v = %v`, attrName, name, listAttrName)
 				// lines = appendstrf(lines, "}")
+			} else if resource.IdsOrArns(originalname) {
+				lines = appendstrf(lines, `if len(%v.%v) > 0 {`, paramBase, name)
+				if property.GetSingularGoType(kind) == "string" {
+					subAttrName := attrName + name
+					subAttrNameItem := subAttrName + "Item"
+
+					lines = appendstrf(lines, `%v := []string{}`, subAttrName)
+					lines = appendblank(lines)
+
+					lines = appendstrf(lines, `for _, item := range %v.%v {`, paramBase, name)
+					lines = appendstrf(lines, `%v := item.DeepCopy()`, subAttrNameItem)
+					lines = appendblank(lines)
+
+					lines = appendstrf(lines, `if %v.ObjectRef.Namespace == "" {`, subAttrNameItem)
+					lines = appendstrf(lines, `%v.ObjectRef.Namespace = in.Namespace`, subAttrNameItem)
+					lines = appendstrf(lines, `}`)
+					lines = appendblank(lines)
+
+					lines = appendstrf(lines, `}`)
+					lines = appendblank(lines)
+
+					lines = appendstrf(lines, `%v.%v = %v`, attrName, originalname, subAttrName)
+				}
+				lines = appendstrf(lines, "}")
+				lines = appendblank(lines)
+
 			} else if property.IsListParameter() {
 				lines = appendstrf(lines, `if len(%v.%v) > 0 {`, paramBase, name)
 				if property.GetSingularGoType(kind) == "string" {

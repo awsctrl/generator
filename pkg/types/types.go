@@ -58,6 +58,10 @@ func (in *Types) GetProperties(props map[string]resource.Property) string {
 			name = resource.TrimIdOrArn(name)
 		}
 
+		if resource.IdsOrArns(originalname) && property.GetItemType() == "String" {
+			name = resource.TrimIdsOrArns(name)
+		}
+
 		// TODO(christopherhein) implement tags
 		if name == "Tags" {
 			// fmt.Printf("tags resource found %+v\n", property)
@@ -76,6 +80,11 @@ func (in *Types) GetProperties(props map[string]resource.Property) string {
 		goType := property.GetGoType(in.Resource.Kind)
 		if resource.IdOrArn(originalname) && property.GetType() == "String" {
 			goType = "metav1alpha1.ObjectReference"
+		}
+
+		if resource.IdsOrArns(originalname) && property.GetItemType() == "String" {
+			goType = "[]metav1alpha1.ObjectReference"
+			required = ",omitempty"
 		}
 
 		lines = appendstrf(lines, `%v %v `+"`"+`json:"%v%v" cloudformation:"%v%v"`+"`", name, goType, lowerfirst(name), required, originalname, param)

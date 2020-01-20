@@ -49,17 +49,20 @@ func (in *Types) GetInput() input.Input {
 	return in.Input
 }
 
+// ShouldOverride will tell the scaffolder to override existing files
+func (in *Types) ShouldOverride() bool { return true }
+
 // GetProperties returns the attributes for all resource types
 func (in *Types) GetProperties(props map[string]resource.Property) string {
 	lines := []string{}
 	for name, property := range props {
 		originalname := name
 		if resource.IdOrArn(originalname) && property.GetType() == "String" {
-			name = resource.TrimIdOrArn(name)
+			name = resource.TrimIdOrArn(name) + "Ref"
 		}
 
 		if resource.IdsOrArns(originalname) && property.GetItemType() == "String" {
-			name = resource.TrimIdsOrArns(name)
+			name = resource.TrimIdsOrArns(name) + "Refs"
 		}
 
 		// TODO(christopherhein) implement tags
@@ -69,7 +72,7 @@ func (in *Types) GetProperties(props map[string]resource.Property) string {
 		}
 		lines = appendstrf(lines, `// %v %v`, name, property.GetDocumentation())
 		required := ""
-		if !property.GetRequired() {
+		if !property.GetRequired() { //|| originalname != in.Resource.Kind+"Name" {
 			required = ",omitempty"
 		}
 		param := ""

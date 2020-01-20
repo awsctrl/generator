@@ -20,19 +20,23 @@ import (
 	"github.com/spf13/afero"
 
 	kbinput "sigs.k8s.io/kubebuilder/pkg/scaffold/input"
-
+	
 	"go.awsctrl.io/generator/pkg/controller"
 	"go.awsctrl.io/generator/pkg/controllermanager"
+	"go.awsctrl.io/generator/pkg/e2e"
 	"go.awsctrl.io/generator/pkg/group"
 	"go.awsctrl.io/generator/pkg/kustomize"
 	"go.awsctrl.io/generator/pkg/stackobject"
 	"go.awsctrl.io/generator/pkg/types"
+	"go.awsctrl.io/generator/pkg/yaml"
+	"go.awsctrl.io/generator/pkg/project"
 
 	"go.awsctrl.io/generator/pkg/input"
 	"go.awsctrl.io/generator/pkg/resource"
 	"go.awsctrl.io/generator/pkg/scaffold"
 )
 
+// API contains the bits for the builder
 type API struct {
 	fs afero.Fs
 
@@ -63,11 +67,15 @@ func (a *API) Build(r *resource.Resource, rs []resource.Resource) (err error) {
 		&group.Group{Resource: r, Input: *in, Resources: rs},
 		&stackobject.StackObject{Resource: r, Input: *in, Resources: rs},
 		&controller.Controller{Resource: r, Input: *in, Resources: rs},
-		&controllermanager.ControllerManager{Resource: r, Input: *in, Resources: rs},
 		&kustomize.CRD{Resource: r, Input: *in, Resources: rs},
+		&yaml.YAML{Resource: r, Input: *in, Resources: rs},
+		&e2e.E2E{Resource: r, Input: *in, Resources: rs},
+		&e2e.Suite{Resource: r, Input: *in, Resources: rs},
+		&controllermanager.ControllerManager{Resource: r, Input: *in, Resources: rs},
+		&project.Project{Resource: r, Input: *in, Resources: rs},
 	}
 
-	s := scaffold.New(a.fs, r)
+	s := scaffold.New(a.fs)
 
 	if err := s.Execute(files...); err != nil {
 		return err

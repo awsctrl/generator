@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package types will generate the apis/<service>/<resource>_types.go
+// Package group will generate the apis/<service>/<resource>_types.go
 package group
 
 import (
@@ -46,9 +46,12 @@ func (in *Group) GetInput() input.Input {
 	return in.Input
 }
 
+// ShouldOverride will tell the scaffolder to override existing files
+func (in *Group) ShouldOverride() bool { return true }
+
 // Validate validates the values
-func (g *Group) Validate() error {
-	return g.Resource.Validate()
+func (in *Group) Validate() error {
+	return in.Resource.Validate()
 }
 
 const groupTemplate = `{{ .Boilerplate }}

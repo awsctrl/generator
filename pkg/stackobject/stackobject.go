@@ -61,6 +61,7 @@ func (in *StackObject) GenerateAttributes() string {
 		lines = appendstrf(lines, `"%v": map[string]interface{}{`, name)
 		if attr.GetType() == "String" || attr.GetType() == "Integer" {
 			lines = appendstrf(lines, `"Value": cloudformation.GetAtt("%v", "%v"),`, in.Resource.Kind, name)
+			lines = appendstrf(lines, `"Export": map[string]interface{}{"Name": in.Name+%+v,},`, name)
 		}
 		// TODO(christopherhein): figure out how to make goformation output join functions
 		// if attr.GetType() == "List" {
@@ -126,11 +127,11 @@ func (in *StackObject) loopTemplateProperties(lines []string, attrName, paramBas
 	for name, property := range propertyMap {
 		originalname := name
 		if resource.IdOrArn(originalname) && property.GetType() == "String" {
-			name = resource.TrimIdOrArn(name)
+			name = resource.TrimIdOrArn(name) + "Ref"
 		}
 
 		if resource.IdsOrArns(originalname) && property.GetItemType() == "String" {
-			name = resource.TrimIdsOrArns(name)
+			name = resource.TrimIdsOrArns(name) + "Refs"
 		}
 
 		if property.IsParameter() {
@@ -171,7 +172,15 @@ func (in *StackObject) loopTemplateProperties(lines []string, attrName, paramBas
 			} else {
 				switch property.GetGoType(in.Resource.Kind) {
 				case "string":
+					if originalname == in.Resource.Kind+"Name" {
+						lines = appendstrf(lines, `// TODO(christopherhein) move these to a defaulter`)
+						lines = appendstrf(lines, `if %v.%v == "" {`, paramBase, name)
+						lines = appendstrf(lines, `%v.%v = in.Name`, attrName, name)
+						lines = appendstrf(lines, `}`)
+						lines = appendblank(lines)
+					}
 					lines = appendstrf(lines, `if %v.%v != "" {`, paramBase, name)
+
 				case "int":
 					if property.GetType() == "Double" {
 						lines = appendstrf(lines, `if float64(%v.%v) != %v.%v {`, paramBase, name, attrName, name)
@@ -351,6 +360,9 @@ func lowerfirst(str string) string {
 	return string(a)
 }
 
+// ShouldOverride will tell the scaffolder to override existing files
+func (in *StackObject) ShouldOverride() bool { return true }
+
 // Validate validates the values
 func (in *StackObject) Validate() error {
 	return in.Resource.Validate()
@@ -397,6 +409,9 @@ func (in *{{ .Resource.Kind }}) GetTemplate(client dynamic.Interface) (string, e
 	template.Outputs = map[string]interface{}{
 		"ResourceRef": map[string]interface{}{
 			"Value": cloudformation.Ref("{{ .Resource.Kind }}"),
+			"Export": map[string]interface{}{
+				"Name": in.Name+"Ref",
+			},
 		},
 		{{ noescape .GenerateAttributes }}
 	}

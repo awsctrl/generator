@@ -24,6 +24,9 @@ import (
 type File interface {
 	// returns the file input for the file generator
 	GetInput() Input
+
+	// Override tells the scaffolder if it should overwrite existing files
+	ShouldOverride() bool
 }
 
 // ProjectFile loads project file from kubebuilder

@@ -30,12 +30,12 @@ func IdOrArn(name string) bool {
 
 // IsArn checks if it's an Id
 func IsId(name, postfix string) bool {
-	return strings.HasSuffix(name, "Id"+postfix)
+	return strings.HasSuffix(strings.ToLower(name), strings.ToLower("Id"+postfix))
 }
 
 // IsArn checks if it's an Arn
 func IsArn(name, postfix string) bool {
-	return strings.HasSuffix(name, "Arn"+postfix)
+	return strings.HasSuffix(strings.ToLower(name), strings.ToLower("Arn"+postfix))
 }
 
 // TrimIdOrArn will remove the id or arn declaration
@@ -138,6 +138,8 @@ func (in *BaseProperty) IsParameter() bool {
 		return true
 	case "Integer":
 		return true
+	case "Timestamp":
+		return true
 	case "Double":
 		return true
 	case "Boolean":
@@ -205,6 +207,8 @@ func (in *BaseProperty) ConstructGoType(kind string, plural string) string {
 		return "int"
 	case "Double":
 		return "int"
+	case "Timestamp":
+		return "string"
 	case "Boolean":
 		return "bool"
 	case "Map":

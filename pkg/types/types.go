@@ -72,7 +72,9 @@ func (in *Types) GetProperties(props map[string]resource.Property) string {
 		}
 		lines = appendstrf(lines, `// %v %v`, name, property.GetDocumentation())
 		required := ""
-		if !property.GetRequired() { //|| originalname != in.Resource.Kind+"Name" {
+		if !property.GetRequired() ||
+			originalname != in.Resource.Kind+"Name" ||
+			!property.IsParameter() {
 			required = ",omitempty"
 		}
 		param := ""
@@ -87,7 +89,6 @@ func (in *Types) GetProperties(props map[string]resource.Property) string {
 
 		if resource.IdsOrArns(originalname) && property.GetItemType() == "String" {
 			goType = "[]metav1alpha1.ObjectReference"
-			required = ",omitempty"
 		}
 
 		lines = appendstrf(lines, `%v %v `+"`"+`json:"%v%v" cloudformation:"%v%v"`+"`", name, goType, lowerfirst(name), required, originalname, param)

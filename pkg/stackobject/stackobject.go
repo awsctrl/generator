@@ -61,7 +61,7 @@ func (in *StackObject) GenerateAttributes() string {
 		lines = appendstrf(lines, `"%v": map[string]interface{}{`, name)
 		if attr.GetType() == "String" || attr.GetType() == "Integer" {
 			lines = appendstrf(lines, `"Value": cloudformation.GetAtt("%v", "%v"),`, in.Resource.Kind, name)
-			lines = appendstrf(lines, `"Export": map[string]interface{}{"Name": in.Name+%+v,},`, name)
+			lines = appendstrf(lines, `"Export": map[string]interface{}{"Name": in.Name + "%v",},`, name)
 		}
 		// TODO(christopherhein): figure out how to make goformation output join functions
 		// if attr.GetType() == "List" {

@@ -48,9 +48,12 @@ func (in *Controller) GetInput() input.Input {
 	return in.Input
 }
 
+// ShouldOverride will tell the scaffolder to override existing files
+func (in *Controller) ShouldOverride() bool { return true }
+
 // Validate validates the values
-func (c *Controller) Validate() error {
-	return c.Resource.Validate()
+func (in *Controller) Validate() error {
+	return in.Resource.Validate()
 }
 
 const controllerTemplate = `{{ .Boilerplate }}

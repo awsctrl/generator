@@ -26,7 +26,6 @@ import (
 
 	"github.com/spf13/afero"
 	"go.awsctrl.io/generator/pkg/input"
-	"go.awsctrl.io/generator/pkg/resource"
 	"golang.org/x/tools/imports"
 
 	"github.com/Masterminds/sprig"
@@ -36,14 +35,12 @@ import (
 // Scaffold contains the functions for generating files
 type Scaffold struct {
 	fs afero.Fs
-	r  *resource.Resource
 }
 
 // New initializes the scaffolder
-func New(fs afero.Fs, r *resource.Resource) *Scaffold {
+func New(fs afero.Fs) *Scaffold {
 	return &Scaffold{
 		fs: fs,
-		r:  r,
 	}
 }
 
@@ -67,8 +64,21 @@ func (s *Scaffold) Execute(files ...input.File) error {
 			return err
 		}
 
-		if err := afs.WriteFile(path, contents, 0600); err != nil {
+		exist, err := afero.Exists(s.fs, path)
+		if err != nil {
 			return err
+		}
+
+		if file.ShouldOverride() == true {
+			if err := afs.WriteFile(path, contents, 0600); err != nil {
+				return err
+			}
+		}
+
+		if file.ShouldOverride() == false && !exist {
+			if err := afs.WriteFile(path, contents, 0600); err != nil {
+				return err
+			}
 		}
 	}
 

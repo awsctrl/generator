@@ -58,6 +58,9 @@ func (in *ControllerManager) GetInput() input.Input {
 	return in.Input
 }
 
+// ShouldOverride will tell the scaffolder to override existing files
+func (in *ControllerManager) ShouldOverride() bool { return true }
+
 // Validate validates the values
 func (in *ControllerManager) Validate() error {
 	return in.Resource.Validate()

@@ -47,6 +47,9 @@ func (in *CRD) GetInput() input.Input {
 	return in.Input
 }
 
+// ShouldOverride will tell the scaffolder to override existing files
+func (in *CRD) ShouldOverride() bool { return true }
+
 // Validate validates the values
 func (in *CRD) Validate() error {
 	return in.Resource.Validate()

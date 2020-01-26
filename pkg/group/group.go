@@ -40,7 +40,7 @@ type Group struct {
 // GetInput implements input.File
 func (in *Group) GetInput() input.Input {
 	if in.Path == "" {
-		in.Path = filepath.Join("apis", in.Resource.Group, in.Resource.Version, "groupversion_info.go")
+		in.Path = filepath.Join("apis", in.Resource.Group, in.Resource.Version, "doc.go")
 	}
 	in.TemplateBody = groupTemplate
 	return in.Input

@@ -20,16 +20,16 @@ import (
 	"github.com/spf13/afero"
 
 	kbinput "sigs.k8s.io/kubebuilder/pkg/scaffold/input"
-	
+
 	"go.awsctrl.io/generator/pkg/controller"
 	"go.awsctrl.io/generator/pkg/controllermanager"
 	"go.awsctrl.io/generator/pkg/e2e"
 	"go.awsctrl.io/generator/pkg/group"
 	"go.awsctrl.io/generator/pkg/kustomize"
+	"go.awsctrl.io/generator/pkg/project"
 	"go.awsctrl.io/generator/pkg/stackobject"
 	"go.awsctrl.io/generator/pkg/types"
 	"go.awsctrl.io/generator/pkg/yaml"
-	"go.awsctrl.io/generator/pkg/project"
 
 	"go.awsctrl.io/generator/pkg/input"
 	"go.awsctrl.io/generator/pkg/resource"

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"unicode"
 
@@ -54,7 +55,16 @@ func (in *StackObject) GetInput() input.Input {
 func (in *StackObject) GenerateAttributes() string {
 	lines := []string{}
 
-	for name, attr := range in.Resource.ResourceType.GetAttributes() {
+	attributes := in.Resource.ResourceType.GetAttributes()
+
+	keys := make([]string, 0, len(attributes))
+	for k := range attributes {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, name := range keys {
+		attr := attributes[name]
 		if attr.GetType() == "List" {
 			continue
 		}
@@ -124,7 +134,14 @@ func (in *StackObject) loopTemplateProperties(lines []string, attrName, paramBas
 	groupLower := strings.ToLower(in.Resource.Group)
 	kind := in.Resource.Kind
 
-	for name, property := range propertyMap {
+	keys := make([]string, 0, len(propertyMap))
+	for k := range propertyMap {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, name := range keys {
+		property := propertyMap[name]
 		originalname := name
 		if resource.IdOrArn(originalname) && property.GetType() == "String" {
 			name = resource.TrimIdOrArn(name) + "Ref"

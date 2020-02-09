@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -114,12 +115,50 @@ func (in *cfnspec) Load() (out []byte, err error) {
 	return ioutil.ReadAll(res.Body)
 }
 
+// Properties    map[string]Property
+// Attributes    map[string]Attribute
+func sortProperties(properties map[string]Property) map[string]Property {
+	keys := make([]string, 0, len(properties))
+	for k := range properties {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	p := map[string]Property{}
+	for _, k := range keys {
+		p[k] = properties[k]
+	}
+	return p
+}
+
+func sortAttributes(attributes map[string]Attribute) map[string]Attribute {
+	keys := make([]string, 0, len(attributes))
+	for k := range attributes {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	p := map[string]Attribute{}
+	for _, k := range keys {
+		p[k] = attributes[k]
+	}
+	return p
+}
+
 // GenerateResources will generate the resources for generating files
 func (in *cfnspec) GenerateResources() error {
 	resources := []resource.Resource{}
 
 	// Resources
-	for resourcename, cloudformationresource := range in.GetSpecification().ResourceTypes {
+	resourcetypes := in.GetSpecification().ResourceTypes
+	keys := make([]string, 0, len(resourcetypes))
+	for k := range resourcetypes {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, resourcename := range keys {
+		cloudformationresource := resourcetypes[resourcename]
 		newresource := newResource(resourcename, cloudformationresource)
 
 		for name, attribute := range cloudformationresource.Attributes {

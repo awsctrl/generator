@@ -44,11 +44,11 @@ type Project struct {
 
 // File is deserialized into a PROJECT file
 type File struct {
-	Version string `json:"version,omitempty"`
-	Domain string `json:"domain,omitempty"`
-	Repo string `json:"repo,omitempty"`
-	Multigroup bool `json:"multigroup,omitempty"`
-	Resources []Resource `json:"resources,omitempty"`
+	Version    string     `json:"version,omitempty"`
+	Domain     string     `json:"domain,omitempty"`
+	Repo       string     `json:"repo,omitempty"`
+	Multigroup bool       `json:"multigroup,omitempty"`
+	Resources  []Resource `json:"resources,omitempty"`
 }
 
 // Resource contains information about scaffolded resources.
@@ -67,20 +67,20 @@ func (in *Project) GetInput() input.Input {
 	resources := []Resource{}
 	for _, resource := range in.Resources {
 		r := Resource{
-			Group: resource.Group,
+			Group:   resource.Group,
 			Version: resource.Version,
-			Kind: resource.Kind,
+			Kind:    resource.Kind,
 		}
 
 		resources = append(resources, r)
 	}
 
 	pfile := File{
-		Version: "2",
-		Domain:  "awsctrl.io",
-		Repo:    "awsctrl.io",
+		Version:    "2",
+		Domain:     "awsctrl.io",
+		Repo:       "awsctrl.io",
 		Multigroup: true,
-		Resources: resources,
+		Resources:  resources,
 	}
 
 	data, _ := yaml.Marshal(&pfile)

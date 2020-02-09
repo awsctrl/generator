@@ -20,6 +20,7 @@ package types
 import (
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strings"
 	"unicode"
 
@@ -40,7 +41,7 @@ type Types struct {
 	Resources []resource.Resource
 }
 
-//
+// GetInput load the input and configure for Scaffolding
 func (in *Types) GetInput() input.Input {
 	if in.Path == "" {
 		in.Path = strings.ToLower(filepath.Join("apis", in.Resource.Group, in.Resource.Version, fmt.Sprintf("%s_types.go", in.Resource.Kind)))
@@ -55,7 +56,15 @@ func (in *Types) ShouldOverride() bool { return true }
 // GetProperties returns the attributes for all resource types
 func (in *Types) GetProperties(props map[string]resource.Property) string {
 	lines := []string{}
-	for name, property := range props {
+
+	keys := make([]string, 0, len(props))
+	for k := range props {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, name := range keys {
+		property := props[name]
 		originalname := name
 		if resource.IdOrArn(originalname) && property.GetType() == "String" {
 			name = resource.TrimIdOrArn(name) + "Ref"
@@ -105,15 +114,16 @@ func (in *Types) GetResourceProperties() string {
 // GetPropertyTypes will return the property types
 func (in *Types) GetPropertyTypes() string {
 	lines := []string{}
-	// {{ range $resourcename, $resource := .Resource.PropertyTypes }}// {{ $.Resource.Kind }}_{{ $resourcename }} defines the desired state of {{ $.Resource.Kind }}{{ $resourcename }}
-	// type {{ $.Resource.Kind }}_{{ $resourcename }} struct {
-	//  {{ range $name, $property := $resource.GetProperties }}
-	// 	// {{ $name }} {{ $property.GetDocumentation }}
-	// 	{{ $name }} {{ $property.GetGoType $.Resource.Kind }} ` + "`" + `json:"{{ $name | lowerfirst }}{{ if not $property.GetRequired }},omitempty{{ end }}" cloudformation:"{{ $name }},Parameter"` + "`" + `
-	// 	{{ end }}
-	// }
-	// {{ end }}
-	for resourcename, resource := range in.Resource.PropertyTypes {
+
+	propertytype := in.Resource.PropertyTypes
+	keys := make([]string, 0, len(propertytype))
+	for k := range propertytype {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, resourcename := range keys {
+		resource := propertytype[resourcename]
 		lines = appendstrf(lines, `// %v_%v defines the desired state of %v%v`, in.Resource.Kind, resourcename, in.Resource.Kind, resourcename)
 		lines = appendstrf(lines, `type %v_%v struct {`, in.Resource.Kind, resourcename)
 		lines = appendstrf(lines, in.GetProperties(resource.GetProperties()))

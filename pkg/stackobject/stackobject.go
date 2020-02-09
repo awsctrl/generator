@@ -315,6 +315,15 @@ func (in *StackObject) loopTemplateProperties(lines []string, attrName, paramBas
 					lines = appendstrf(lines, `}`)
 					lines = appendblank(lines)
 
+					lines = appendstrf(lines, `%v, err := %v.String(client)`, lowerfirst(originalname), subAttrNameItem)
+					lines = appendstrf(lines, `if err != nil {`)
+					lines = appendstrf(lines, `return "", err`)
+					lines = appendstrf(lines, `}`)
+					lines = appendblank(lines)
+					lines = appendstrf(lines, `if %v != "" {`, lowerfirst(originalname))
+					lines = appendstrf(lines, `%v = append(%v, %v)`, subAttrName, subAttrName, lowerfirst(originalname))
+
+					lines = appendstrf(lines, `}`)
 					lines = appendstrf(lines, `}`)
 					lines = appendblank(lines)
 

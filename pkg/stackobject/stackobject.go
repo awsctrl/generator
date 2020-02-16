@@ -51,6 +51,18 @@ func (in *StackObject) GetInput() input.Input {
 	return in.Input
 }
 
+func inBlacklist(attr string, r *resource.Resource) bool {
+	if r.Kind == "DomainName" && r.Group == "apigateway" {
+		switch attr {
+		case "DistributionHostedZoneId":
+			return true
+		case "DistributionDomainName":
+			return true
+		}
+	}
+	return false
+}
+
 // GenerateAttributes will return the templating functions
 func (in *StackObject) GenerateAttributes() string {
 	lines := []string{}
@@ -65,7 +77,7 @@ func (in *StackObject) GenerateAttributes() string {
 
 	for _, name := range keys {
 		attr := attributes[name]
-		if attr.GetType() == "List" {
+		if attr.GetType() == "List" || inBlacklist(name, in.Resource) {
 			continue
 		}
 		lines = appendstrf(lines, `"%v": map[string]interface{}{`, name)

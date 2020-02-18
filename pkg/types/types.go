@@ -186,6 +186,7 @@ type {{ .Resource.Kind }}Output struct {
 	{{ end }}
 }
 
+// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=aws;{{ .Resource.Group }}
